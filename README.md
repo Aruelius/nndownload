@@ -47,7 +47,7 @@ download options:
                         下载视频缩略图
   -c, --download-comments
                         下载视频屏幕
-  -e, --english         下载英语评论
+  -e, --english         下载英文评论
 ```
 
 Custom filepaths are constructed like standard Python template strings, e.g. `{uploader} - {title}.{ext}`. The available options are:
