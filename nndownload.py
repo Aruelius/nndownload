@@ -16,6 +16,7 @@ import os
 import sys
 import threading
 import getpass
+import datetime
 import time
 import netrc
 import collections
@@ -304,51 +305,95 @@ def create_filename(template_params):
         return sanitize_for_path(filename)
 
 
-def download_video(session, filename, template_params):
+def Handler(start, end, url, filename, session, template_params):
+    
+    headers = {'Range': 'bytes=%d-%d' % (start, end)}
+    r = requests.get(url, headers=headers, stream=True)
+    # 写入文件对应位置
+    with open(filename, "r+b") as fp:
+        start = time.time()
+        size = 0
+        chunk_size = 1024
+        content_size = int(r.headers['content-length'])
+        #print(content_size)
+        
+        for data in r.iter_content(chunk_size = chunk_size):
+            fp .write(data)
+            size += len(data)
+            print('\n' + '[下载进度]:%s%.2f%%' % ('>'*int(size*50/content_size),float(size / content_size * 100)),end = '')
+    end = time.time() # 结束时间
+    print('\n'+'线程完成!')
+            #fp.seek(start)
+            #var = fp.tell()
+            #fp.write(r.content)
+
+def download_video(session, file_name, template_params, num_thread = 25):
     """Download video from response URL and display progress."""
+    url = template_params["url"]
 
-    output("Downloading {0} to \"{1}\"...\n".format(template_params["id"], filename), logging.INFO)
+    output("Downloading {0} to \"{1}\"...\n".format(template_params["id"], file_name), logging.INFO)
 
-    dl_stream = session.head(template_params["url"])
-    dl_stream.raise_for_status()
-    video_len = int(dl_stream.headers["content-length"])
+    dl_stream = session.head(template_params["url"]) # <Response [200]>
+    dl_stream.raise_for_status() # 状态
+    #video_len = int(dl_stream.headers["content-length"]) # 大小
 
     if cmdl_opts.force_high_quality and video_len == template_params["size_low"]:
         raise FormatNotAvailableException("High quality source not currently available")
 
-    if os.path.isfile(filename):
-        current_byte_pos = os.path.getsize(filename)
-        if current_byte_pos < video_len:
-            file_condition = "ab"
-            resume_header = {"Range": "bytes={}-".format(current_byte_pos)}
-            dl = current_byte_pos
-            output("Resuming previous download.\n", logging.INFO)
+    if os.path.isfile(file_name):
+        print('文件已经存在')
+        return
+    #    current_byte_pos = os.path.getsize(filename)
+    #    if current_byte_pos < video_len:
+    #        file_condition = "ab"
+    #        resume_header = {"Range": "bytes={}-".format(current_byte_pos)}   # 断点续传
+    #        dl = current_byte_pos
+    #        output("Resuming previous download.\n", logging.INFO)
 
-        elif current_byte_pos >= video_len:
-            output("File exists and is complete.\n", logging.INFO)
-            return
+    #    elif current_byte_pos >= video_len:
+    #        output("File exists and is complete.\n", logging.INFO)
+    #        return
 
-    else:
-        file_condition = "wb"
-        resume_header = {"Range": "bytes=0-"}
-        dl = 0
+    #else:
+    #    file_condition = "wb"
+    #    resume_header = {"Range": "bytes=0-"}
+    #    dl = 0
+    r = requests.head(url)
+    try:
+        file_size = int(dl_stream.headers["content-length"])   # Content-Length获得文件主体的大小，当http服务器使用Connection:keep-alive时，不支持Content-Length
+    except:
+        print("检查URL，或不支持对线程下载")
+        return
+    start1 = datetime.datetime.now().replace(microsecond=0) 
+    #  创建一个和要下载文件一样大小的文件
+    fp = open(file_name, "wb")
+    fp.truncate(file_size)
+    fp.close()
 
-    dl_stream = session.get(template_params["url"], headers=resume_header, stream=True)
-    dl_stream.raise_for_status()
+    # 启动多线程写文件
+    part = file_size // num_thread  # 如果不能整除，最后一块应该多几个字节
+    for i in range(num_thread):
+        start = part * i
+        if i == num_thread - 1:   # 最后一块
+            end = file_size
+        else:
+            end = start + part
 
-    with open(filename, file_condition) as file:
-        start_time = time.time()
-        for block in dl_stream.iter_content(BLOCK_SIZE):
-            dl += len(block)
-            file.write(block)
-            done = int(25 * dl / video_len)
-            percent = int(100 * dl / video_len)
-            speed_str = calculate_speed(start_time, time.time(), dl)
-            output("\r|{0}{1}| {2}/100 @ {3:9}/s".format("#" * done, " " * (25 - done), percent, speed_str), logging.DEBUG)
+        t = threading.Thread(target=Handler, kwargs={'start': start, 'end': end, 'url': url, 'filename': file_name, 'session': session, 'template_params': template_params })
+        t.setDaemon(True)
+        t.start()
 
-    output("\nFinished downloading {0} to \"{1}\".\n".format(template_params["id"], filename), logging.INFO)
-    FINISHED_DOWNLOADING = True
-
+    # 等待所有线程下载完成
+    main_thread = threading.current_thread()
+    for t in threading.enumerate():
+        if t is main_thread:
+            continue
+        t.join()
+    filesize = str('%.2f'%(file_size / 1024 / 1024))
+    print('%s 下载完成！文件大小%sMB' % (file_name, filesize))
+    end1 = datetime.datetime.now().replace(microsecond=0)
+    print("用时: ", end='')
+    print(end1-start1)
 
 def dump_metadata(filename, template_params):
     """Dump the collected video metadata to a file."""
