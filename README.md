@@ -8,6 +8,7 @@ nndownload允许您从[Niconico](http://nicovideo.jp)下载视频，以前称为
  - 下载Mylist
  - 为官方Niconama广播构建RTMP流URLs
  - 下载文本文件里的URLs
+ - 多线程下载视频，速度是单线程的N倍，默认线程数为25，可自行修改num_thread = 25
 
 ## 要求
 ### Python 版本
