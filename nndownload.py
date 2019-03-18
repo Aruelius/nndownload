@@ -320,9 +320,8 @@ def Handler(start, end, url, filename, session, template_params):
         for data in r.iter_content(chunk_size = chunk_size):
             fp .write(data)
             size += len(data)
-            print('\n' + '[下载进度]:%s%.2f%%' % ('>'*int(size*50/content_size),float(size / content_size * 100)),end = '')
+            print('\r' + '[下载进度]:%s%.2f%%' % ('>'*int(size*50/content_size),float(size / content_size * 100)),end = '')
     end = time.time() # 结束时间
-    print('\n'+'线程完成!')
             #fp.seek(start)
             #var = fp.tell()
             #fp.write(r.content)
