@@ -1,7 +1,7 @@
 # nndownload
 nndownload allows you to download videos from [Niconico](http://nicovideo.jp), formerly known as Nico Nico Douga. It simulates the HTML5 player by performing a session request to get the HQ source. Where not available, it will fallback to the Flash player. Keep in mind that if your account doesn't have premium, it may download the LQ source during economy mode hours (12 PM - 2 AM JST).
 # nndownload
-nndownload允许您从[Niconico]（http://nicovideo.jp）下载视频，以前称为Nico Nico Douga。 它通过执行会话请求来模拟HTML5播放器以获取高清视频源。 如果没有，它将回退到Flash播放器。 请注意，如果您的帐户没开会员，则可以在N站的经济模式时段（12 PM  -  2 AM JST）下载低画质源。
+nndownload允许您从[Niconico](http://nicovideo.jp)下载视频，以前称为Nico Nico Douga。 它通过执行会话请求来模拟HTML5播放器以获取高清视频源。 如果没有，它将回退到Flash播放器。 请注意，如果您的帐户没开会员，则可以在N站的经济模式时段（12 PM  -  2 AM JST）下载低画质源。
 
 ## 功能
  - 下载包含评论，缩略图和元数据的视频
